@@ -1,0 +1,236 @@
+version: 2
+
+models:
+  - name: mart_weather_operations
+    description: >
+      Weather operations mart for Colorado utilities analytics.
+      Contains daily weather metrics, energy demand indicators,
+      operational risk flags, and composite risk scoring per city.
+      Grain: one row per weather_date + city_name combination.
+    columns:
+      - name: weather_date
+        description: The date of the weather observation
+        data_tests:
+          - not_null
+      - name: city_name
+        description: Name of the Colorado city (underscore format from source)
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Boulder'
+                - 'Colorado_Springs'
+                - 'Denver'
+                - 'Fort_Collins'
+                - 'Pueblo'
+      - name: temp_max_f
+        description: Maximum temperature in Fahrenheit
+        data_tests:
+          - not_null
+      - name: temp_min_f
+        description: Minimum temperature in Fahrenheit
+        data_tests:
+          - not_null
+      - name: temp_avg_f
+        description: Average temperature in Fahrenheit (mean of max and min)
+        data_tests:
+          - not_null
+      - name: heating_degree_days
+        description: >
+          Energy demand indicator for heating.
+          When avg temp < 65F, HDD = 65 - avg temp. Otherwise 0.
+        data_tests:
+          - not_null
+      - name: cooling_degree_days
+        description: >
+          Energy demand indicator for cooling (A/C load).
+          When avg temp > 65F, CDD = avg temp - 65. Otherwise 0.
+        data_tests:
+          - not_null
+      - name: ops_risk_score
+        description: Composite risk score from 0 (calm) to 4 (all flags triggered)
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 3, 4]
+      - name: ops_risk_label
+        description: Human-readable risk label derived from ops_risk_score
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Normal Operations'
+                - 'Monitor'
+                - 'Elevated Risk'
+                - 'High Alert'
+      - name: season
+        description: Meteorological season derived from month
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Winter'
+                - 'Spring'
+                - 'Summer'
+                - 'Fall'
+
+  - name: mart_eia_weather
+    description: >
+      Joins real PSCO (Xcel Energy) hourly electricity demand (aggregated to daily)
+      with real Colorado weather data. Derives Cooling Degree Days and Heating Degree Days
+      from temperature. Grain: one row per demand_date.
+    columns:
+      - name: demand_date
+        description: Calendar date of the demand observation
+        data_tests:
+          - not_null
+          - unique
+      - name: respondent
+        description: EIA balancing authority code (PSCO = Xcel Energy Colorado)
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['PSCO']
+      - name: total_demand_mwh
+        description: Total electricity demand in MWh for the day
+        data_tests:
+          - not_null
+      - name: peak_demand_mwh
+        description: Highest hourly demand in MWh for the day
+        data_tests:
+          - not_null
+      - name: load_tier
+        description: Grid stress classification based on peak demand
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Critical Peak'
+                - 'High Load'
+                - 'Moderate Load'
+                - 'Normal Load'
+      - name: season
+        description: Meteorological season derived from month
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Winter'
+                - 'Spring'
+                - 'Summer'
+                - 'Fall'
+      - name: demand_pressure_score
+        description: >
+          0-10 scale of how hard the grid is being pushed.
+          Calculated as peak_demand_mwh / 10642 * 10.
+        data_tests:
+          - not_null
+      - name: operational_condition
+        description: Combined weather + demand classification for operational status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Heat Wave Stress'
+                - 'Cold Snap Stress'
+                - 'Grid Critical'
+                - 'High Demand'
+                - 'Normal Operations'
+
+  - name: mart_generator_mix
+    description: >
+      Colorado electricity generation fleet summary by fuel type.
+      Sourced from EIA operating generator capacity data (latest period: 2026-06).
+      Grain: one row per fuel_type.
+    columns:
+      - name: fuel_type
+        description: Readable fuel type label (Natural Gas, Wind, Solar PV, etc.)
+        data_tests:
+          - not_null
+          - unique
+      - name: total_net_capacity_mw
+        description: Sum of net summer capacity in MW for this fuel type
+        data_tests:
+          - not_null
+      - name: fleet_share_pct
+        description: This fuel type's share of total Colorado generating capacity
+        data_tests:
+          - not_null
+      - name: is_clean_energy
+        description: "1 if fuel type is Wind, Solar, Hydro, Battery, or Geothermal; 0 otherwise"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+      - name: grid_dependency_label
+        description: Risk label for what happens if this fuel type goes offline
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Critical Dependency'
+                - 'Significant Dependency'
+                - 'Moderate Dependency'
+                - 'Low Dependency'
+
+  - name: mart_eia_sales_by_sector
+    description: >
+      Monthly Colorado electricity retail sales by customer sector.
+      Sourced from EIA retail-sales API covering all historical periods.
+      Includes MoM and YoY change calculations, price tier classification,
+      and sector display labels for Power BI.
+      Grain: one row per sale_month + sector combination.
+    columns:
+      - name: sale_month
+        description: First day of the month for this record
+        data_tests:
+          - not_null
+      - name: sector
+        description: EIA sector code (RES, COM, IND, TRA, OTH)
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['RES', 'COM', 'IND', 'TRA', 'OTH']
+      - name: sector_name
+        description: Human-readable sector name
+        data_tests:
+          - not_null
+      - name: sales_mwh
+        description: >
+          Total electricity sold in MWh for this sector and month.
+          NULL is expected for the Transportation (TRA) sector in earlier periods —
+          EIA does not report complete sales figures for EV charging infrastructure
+          prior to widespread adoption reporting.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: price_cents_per_kwh
+        description: >
+          Average retail price in cents per kilowatt-hour.
+          NULL is expected for the Transportation (TRA) sector —
+          EIA price reporting for EV charging is incomplete for historical periods.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: season
+        description: Meteorological season
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Winter'
+                - 'Spring'
+                - 'Summer'
+                - 'Fall'
+      - name: price_tier
+        description: Rate classification based on price per kWh
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Premium Rate'
+                - 'Standard Rate'
+                - 'Discounted Rate'
+                - 'Industrial Rate'
