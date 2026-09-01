@@ -4,7 +4,7 @@ A production-grade end-to-end data engineering pipeline for Colorado electric ut
 
 ---
 
-## 🎯 What We Built & Why It's Impressive
+## 🎯 What Built & Why It's Impressive
 
 This isn't a toy dataset project. Every layer of this pipeline does something technically interesting:
 
@@ -19,7 +19,7 @@ This isn't a toy dataset project. Every layer of this pipeline does something te
 
 ---
 
-## 🌐 Real Data We Pulled from Live APIs
+## 🌐 Real Data Pulls from Live APIs
 
 ### 1. Open-Meteo Weather API (`pull_weather.py`)
 - **Free, no auth required** — pulls real historical weather for 5 Colorado cities
@@ -46,10 +46,10 @@ This isn't a toy dataset project. Every layer of this pipeline does something te
 
 ---
 
-## 🔬 Advanced Python Analytics We Built
+## 🔬 Advanced Python Analytics Built
 
 ### Power Grid Network Analysis (`build_power_grid.py`)
-Built a **real graph-theoretic model** of the Colorado power grid using **NetworkX**:
+Builds a **real graph-theoretic model** of the Colorado power grid using **NetworkX**:
 
 - **15 nodes** — substations, solar farms, wind farms, transmission hubs across 5 cities
 - **17 edges** — transmission lines with capacity (MW) and voltage (kV) as edge weights
@@ -60,7 +60,7 @@ Built a **real graph-theoretic model** of the Colorado power grid using **Networ
 - Results: `RAW_GRID_NODES` (15 rows) + `RAW_GRID_EDGES` (17 rows)
 
 ### Outage Simulation (`generate_outages.py`)
-Generated **statistically realistic outages** correlated with actual weather data:
+Generates **statistically realistic outages** correlated with actual weather data:
 
 - **Poisson distribution** — outage counts per day drawn from λ based on real weather risk score
 - Weather-correlated severity — high wind days drive line outages, freeze days drive equipment failures, heat alerts drive transformer overloads
@@ -122,7 +122,7 @@ Reads **real dbt mart data** (`MART_WEATHER_OPERATIONS`) then generates spend co
 
 ## ⚡ PySpark Distributed Analysis (`spark_operations_analysis.py`)
 
-Ran distributed compute on top of the dbt marts:
+Runs distributed compute on top of the dbt marts:
 
 - **City-level aggregations** — avg/sum/max across outages, customer minutes lost, labor cost, stress score, temperature per city
 - **Window ranking function** — `rank().over(Window.orderBy(desc("avg_stress_score")))` — ranks all 5 cities by operational stress
@@ -194,7 +194,7 @@ Denver · Colorado Springs · Boulder · Fort Collins · Pueblo
 
 ## 📈 Power BI & DAX Dashboards
 
-Connected **Power BI directly to Snowflake** marts and built DAX-powered dashboards on top of the full pipeline:
+Connects **Power BI directly to Snowflake** marts and built DAX-powered dashboards on top of the full pipeline:
 
 - **Operational Stress Dashboard** — DAX measures for avg/peak stress score by city, risk label distribution, high-stress day counts
 - **Outage Analytics** — customer minutes lost trending, outage type breakdown, seasonal patterns
