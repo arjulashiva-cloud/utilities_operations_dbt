@@ -1,10 +1,10 @@
 # ⚡ Utilities Operations Data Pipeline
 
-A production-grade end-to-end data engineering pipeline for Colorado electric utilities — pulling **real data from live APIs**, running **advanced Python analytics**, transforming with **dbt**, and distributing compute with **PySpark** — all landing in **Snowflake**.
+A production-grade end-to-end data engineering pipeline for Colorado electric utilities — pulling **real data from live APIs**, running **advanced Python analytics**, transforming with **dbt**, and distributing compute with **PySpark** — all landing in **Snowflake**, then visualized through **6 fully-built Power BI dashboards** with custom DAX measures and AI-powered analytics.
 
 ---
 
-## 🎯 What Built & Why It's Impressive
+## 🎯 What We Built & Why It's Impressive
 
 This isn't a toy dataset project. Every layer of this pipeline does something technically interesting:
 
@@ -16,6 +16,109 @@ This isn't a toy dataset project. Every layer of this pipeline does something te
 | **dbt Transformation** | 9 staging models + 10 business marts with complex SQL joins and risk scoring |
 | **PySpark** | City-level aggregations, window ranking functions, grid criticality joins at scale |
 | **Snowflake** | Everything lands in a structured raw + marts schema — production-ready |
+| **Power BI + DAX** | 6 fully-built dashboards with KPI cards, custom DAX measures, AI Key Influencers visual |
+
+---
+
+## 📊 Power BI Dashboards
+
+Six production-ready dashboards built directly on top of Snowflake marts via live DirectQuery connection. All dashboards use custom DAX measures, calculated columns, KPI cards, and interactive cross-filtering.
+
+---
+
+### 🗺️ Grid Overview
+*High-level operational command center — first thing an ops manager sees every morning*
+
+![Grid Overview](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/Grid%20Overview.png)
+
+**Visuals:** KPI cards (Total Outages, Total CML, Avg Stress Score, Total Customers Affected) · Bar chart by city · Trend lines · Donut chart by risk label
+
+---
+
+### 🔥 Operational Stress
+*Tracks composite stress score across all 5 cities — identifies high-risk days and patterns*
+
+![Operational Stress](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/Operational%20Stress.png)
+
+**Visuals:** KPI cards (Avg Stress Score, Peak Stress Score, High Stress Days, Elevated Stress Days, % High Risk Days) · Area chart by weather description (Rainy/Thunderstorm drive highest stress) · Donut chart by OPS risk label · Matrix by city × month
+
+**Key DAX Measures:**
+```dax
+Avg Stress Score = AVERAGE(MART_OPERATIONS_SUMMARY[OPERATIONAL_STRESS_SCORE])
+Peak Stress Score = MAX(MART_OPERATIONS_SUMMARY[OPERATIONAL_STRESS_SCORE])
+High Stress Days = CALCULATE(COUNTROWS(MART_OPERATIONS_SUMMARY), MART_OPERATIONS_SUMMARY[OPERATIONAL_STRESS_SCORE] >= 7)
+% High Risk Days = DIVIDE(CALCULATE(COUNTROWS(MART_OPERATIONS_SUMMARY), MART_OPERATIONS_SUMMARY[OPS_RISK_LABEL] = "High"), COUNTROWS(MART_OPERATIONS_SUMMARY), 0)
+```
+
+---
+
+### ⚡ Outage Analytics
+*Deep dive into outage patterns — what's causing them, where, and how many customers are impacted*
+
+![Outage Analytics](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/Outage%20Analytics.png)
+
+**Visuals:** KPI cards (Total Outages, Total CML, Total Customers Affected, Avg Duration, Weather-Driven Outages, Unplanned Outages) · Bar chart by city · Area chart by month · Matrix by city × month · **🤖 Key Influencers AI Visual** (automatically identifies what most increases outage count)
+
+**Key DAX Measures:**
+```dax
+Total Customers Affected = SUM(MART_OPERATIONS_SUMMARY[TOTAL_CUSTOMERS_AFFECTED])
+Avg Outage Duration = AVERAGE(MART_OPERATIONS_SUMMARY[AVG_OUTAGE_DURATION_HRS])
+Weather Driven Outages = SUM(MART_OPERATIONS_SUMMARY[WEATHER_DRIVEN_OUTAGES])
+Unplanned Outages = SUM(MART_OPERATIONS_SUMMARY[UNPLANNED_OUTAGES])
+```
+
+---
+
+### 💰 O&M Spend Analysis
+*Operations & Maintenance cost intelligence — where money is being spent and why*
+
+![O&M Spend Analysis](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/O%26M%20Spend%20Analysis.png)
+
+**Visuals:** KPI cards (Total O&M Spend, Avg Cost Per Risk Point, High Spend Count, Avg OM Risk Score) · Bar chart by asset type (Transformer, Power Line, Substation, Smart Meter, Distribution Panel, Underground Cable) · Donut chart by cost category (Labor, Materials, Contractor, Equipment Rental) · Matrix by city × month · **🤖 Key Influencers AI Visual** (identifies what drives high O&M spend)
+
+**Key DAX Measures:**
+```dax
+Total OM Spend = SUM(MART_OM_SPEND[AMOUNT_USD])
+Avg Cost Per Risk Point = AVERAGE(MART_OM_SPEND[COST_PER_RISK_POINT])
+High Spend Count = CALCULATE(COUNTROWS(MART_OM_SPEND), MART_OM_SPEND[IS_HIGH_SPEND] = 1)
+Avg OM Risk Score = AVERAGE(MART_OM_SPEND[AVG_RISK_SCORE])
+```
+
+---
+
+### 👷 Workforce & Safety
+*Crew deployment, labor cost, overtime, and safety observation tracking in one view*
+
+![Workforce & Safety](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/Workforce%20%26%20Safety.png)
+
+**Visuals:** KPI cards (Total Labor Cost, Total Overtime Cost, Total Hours Worked, Avg Safety Risk, Total Incidents, Overdue Closures) · Bar chart by crew type · Ribbon chart showing labor cost trend by crew type (Lineman, Safety Officer, Field Tech, Supervisor) · Matrix by city × month
+
+**Key DAX Measures:**
+```dax
+Total Labor Cost = SUM(MART_WORKFORCE_OPERATIONS[LABOR_COST])
+Total Overtime Cost = SUM(MART_WORKFORCE_OPERATIONS[OVERTIME_PREMIUM_COST])
+Total Hours Worked = SUM(MART_WORKFORCE_OPERATIONS[HOURS_WORKED])
+Avg Safety Risk = AVERAGE(MART_SAFETY_OPERATIONS[SAFETY_RISK_INDEX])
+Total Incidents = CALCULATE(COUNTROWS(MART_SAFETY_OPERATIONS), MART_SAFETY_OPERATIONS[IS_INCIDENT] = 1)
+Overdue Closures = CALCULATE(COUNTROWS(MART_SAFETY_OPERATIONS), MART_SAFETY_OPERATIONS[IS_OVERDUE] = 1)
+```
+
+---
+
+### 📈 EIA Market Intelligence
+*Real retail electricity market data — revenue, sales volume, price per kWh, and customer counts by sector*
+
+![EIA Market Intelligence](https://raw.githubusercontent.com/arjulashiva-cloud/utilities_operations_dbt/main/dashboards/EIA%20Market%20Intelligence.png)
+
+**Visuals:** KPI cards (Total Revenue, Total Sales MWh, Avg Price Per KWh, Total Customers) · Bar chart by sector (Residential, Commercial, Industrial, Transportation) · Area chart by month · Donut chart by sector · Matrix by state × sector
+
+**Key DAX Measures:**
+```dax
+Total Revenue = SUM(MART_EIA_SALES_BY_SECTOR[REVENUE_USD])
+Total Sales MWh = SUM(MART_EIA_SALES_BY_SECTOR[SALES_MWH])
+Avg Price Per KWh = AVERAGE(MART_EIA_SALES_BY_SECTOR[PRICE_USD_PER_KWH])
+Total Customers EIA = SUM(MART_EIA_SALES_BY_SECTOR[CUSTOMERS])
+```
 
 ---
 
@@ -46,7 +149,7 @@ This isn't a toy dataset project. Every layer of this pipeline does something te
 
 ---
 
-## 🔬 Advanced Python Analytics Built
+## 🔬 Advanced Python Analytics
 
 ### Power Grid Network Analysis (`build_power_grid.py`)
 Builds a **real graph-theoretic model** of the Colorado power grid using **NetworkX**:
@@ -128,7 +231,7 @@ Runs distributed compute on top of the dbt marts:
 - **Window ranking function** — `rank().over(Window.orderBy(desc("avg_stress_score")))` — ranks all 5 cities by operational stress
 - **Risk labeling** — High Risk / Elevated / Moderate / Low based on stress score thresholds
 - **High-stress day filtering** — isolated all days with stress score ≥ 2 across all cities
-- **Seasonal breakdown** — aggregated operational patterns by Winter / Spring / Summer / Fall
+- **Seasonal breakdown** — aggregated operational patterns by Summer / Fall / Winter / Spring
 - **Grid criticality join** — joined city stress rankings with NetworkX betweenness centrality and capacity data
 - Results written back to Snowflake: `RAW_SPARK_CITY_SUMMARY` — 5 rows, one per city
 
@@ -188,22 +291,7 @@ Denver · Colorado Springs · Boulder · Fort Collins · Pueblo
 | Transformation | dbt-snowflake (staging + marts) |
 | Distributed analytics | Apache PySpark — window functions, aggregations |
 | Version control | Git / GitHub |
-| BI & DAX | Power BI — DAX measures, calculated columns, KPI dashboards |
-
----
-
-## 📈 Power BI & DAX Dashboards
-
-Connects **Power BI directly to Snowflake** marts and built DAX-powered dashboards on top of the full pipeline:
-
-- **Operational Stress Dashboard** — DAX measures for avg/peak stress score by city, risk label distribution, high-stress day counts
-- **Outage Analytics** — customer minutes lost trending, outage type breakdown, seasonal patterns
-- **Grid Criticality** — betweenness centrality rankings, capacity by fuel type, critical node identification
-- **O&M Spend Analysis** — spend by asset type and cost category, risk multiplier impact, weather-driven cost spikes
-- **Workforce & Safety** — crew utilization, overtime trending, safety observation severity by risk level
-- **EIA Market Intelligence** — real grid demand vs weather, retail sales by sector, generator mix
-
-DAX highlights: time intelligence functions, running totals, rank measures, weather-correlated KPIs, dynamic risk thresholds
+| BI & Visualization | Power BI — 6 dashboards, DAX measures, AI Key Influencers |
 
 ---
 
@@ -251,4 +339,9 @@ python generate_om_spend.py
 
 # 5 — PySpark analysis (reads from dbt marts)
 python spark_operations_analysis.py
+
+# 6 — Open Power BI and connect to Snowflake marts
+# All 6 dashboards are pre-built in utilities_operations.pbix
 ```
+
+---
